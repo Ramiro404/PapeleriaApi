@@ -52,6 +52,7 @@ namespace PapeleriaApi.Controllers
 
 		[HttpGet("{id}")]
 		[ActionName(nameof(ObtenerPorId))]
+		[Authorize(Roles = Constantes.ROL_ADMIN_O_VENDEDOR)]
 		public ActionResult<Categoria> ObtenerPorId(int id)
 		{
 			try
@@ -81,6 +82,7 @@ namespace PapeleriaApi.Controllers
 
 		[HttpPost]
 		[ActionName(nameof(CrearAsync))]
+		[Authorize(Roles = Constantes.ROL_ADMIN)]
 		public async Task<ActionResult<Categoria>> CrearAsync(Categoria entidad)
 		{
 			try
@@ -102,6 +104,7 @@ namespace PapeleriaApi.Controllers
 
 		[HttpPut("{id}")]
 		[ActionName(nameof(Actualizar))]
+		[Authorize(Roles = Constantes.ROL_ADMIN)]
 		public async Task<ActionResult> Actualizar(int id, Categoria entidad)
 		{
 			try
@@ -127,6 +130,7 @@ namespace PapeleriaApi.Controllers
 
 		[HttpDelete("{id}")]
 		[ActionName(nameof(Eliminar))]
+		[Authorize(Roles = Constantes.ROL_ADMIN)]
 		public async Task<IActionResult> Eliminar(int id)
 		{
 			try

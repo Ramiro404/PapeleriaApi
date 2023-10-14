@@ -1,13 +1,17 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using PapeleriaApi.Modelos;
 using PapeleriaApi.Modelos.Dtos;
 using PapeleriaApi.Modelos.Repositorios;
+using PapeleriaApi.Utilidades;
+using System.Data;
 
 namespace PapeleriaApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class UsuarioController : ControllerBase
+	[Authorize(Roles = Constantes.ROL_ADMIN)]
+	public class UsuarioController : ControllerBase
     {
         private IUsuarioRepositorio _usuarioRepositorio;
 
@@ -17,51 +21,101 @@ namespace PapeleriaApi.Controllers
 
         [HttpGet]
         [ActionName(nameof(Listar))]
-        public IEnumerable<Usuario> Listar([FromQuery(Name = "cantidad")] int cantidad,
-			[FromQuery(Name = "salto")] int posicion) { 
-            return _usuarioRepositorio.Listar(cantidad, posicion);
+        public ActionResult Listar([FromQuery(Name = "cantidad")] int cantidad,
+			[FromQuery(Name = "salto")] int salto)
+        {
+            try
+            {
+                var datos = _usuarioRepositorio.Listar(cantidad,  salto);
+				var respuesta = new RespuestaApiPlural<Usuario>
+				{
+					Error = null,
+					Datos = datos,
+					Cantidad = cantidad,
+					Salto = salto
+				};
+				return Ok(respuesta);
+			}
+			catch(Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
         }
 
         [HttpGet("{id}")]
         [ActionName(nameof(ObtenerPorId))]
         public ActionResult<UsuarioDto> ObtenerPorId(int id)
         {
-            var entidad = _usuarioRepositorio.ObtenerDtoPorId(id);
-            if(entidad == null)
+            try
             {
-                return NotFound();
+				var entidad = _usuarioRepositorio.ObtenerDtoPorId(id);
+				if (entidad == null)
+				{
+					return NotFound();
+				}
+				var respuesta = new RespuestaApiSingular<UsuarioDto>
+				{
+					Error = null,
+					Datos = entidad
+				};
+				return Ok(respuesta);
+			}
+			catch(Exception ex)
+            {
+                return StatusCode(500, ex.Message);
             }
-            return entidad;
+            
         }
 
         [HttpPost]
         [ActionName(nameof(CrearAsync))]
         public async Task<ActionResult<Usuario>> CrearAsync(Usuario entidad)
         {
-            await _usuarioRepositorio.GuardarAsync(entidad);
-            return CreatedAtAction(nameof(ObtenerPorId), new { id = entidad.Id }, entidad);
+            try
+            {
+				await _usuarioRepositorio.GuardarAsync(entidad);
+				return CreatedAtAction(nameof(ObtenerPorId), new { id = entidad.Id }, entidad);
+			}catch(Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+           
         }
 
         [HttpPut("{id}")]
         [ActionName(nameof(Actualizar))]
         public async Task<ActionResult> Actualizar(int id, Usuario entidad)
         {
-            if (id != entidad.Id)
+            try
             {
-                return BadRequest();
+				if (id != entidad.Id)
+				{
+					return BadRequest();
+				}
+				await _usuarioRepositorio.ActualizarAsync(entidad);
+				return NoContent();
+			}
+            catch(Exception ex)
+            {
+                return StatusCode(500, ex.Message);
             }
-            await _usuarioRepositorio.ActualizarAsync(entidad);
-            return NoContent();
         }
 
         [HttpDelete("{id}")]
         [ActionName(nameof(Eliminar))]
         public async Task<IActionResult> Eliminar(int id)
         {
-            var entidad = _usuarioRepositorio.ObtenerPorId(id);
-            if (entidad == null) { return NotFound(); }
-            await _usuarioRepositorio.EliminarAsync(entidad);
-            return NoContent();
+            try
+            {
+				var entidad = _usuarioRepositorio.ObtenerPorId(id);
+				if (entidad == null) { return NotFound(); }
+				await _usuarioRepositorio.EliminarAsync(entidad);
+				return NoContent();
+			}catch(Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            
         }
 
     }

@@ -1,8 +1,12 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using PapeleriaApi.Modelos;
+using PapeleriaApi.Modelos.Dtos;
 using PapeleriaApi.Modelos.Repositorios;
 using PapeleriaApi.Servicios;
+using PapeleriaApi.Utilidades;
+using System.Data;
 using System.Net;
 using System.Security.Claims;
 
@@ -28,29 +32,24 @@ namespace PapeleriaApi.Controllers
 
 		[HttpGet]
 		[ActionName(nameof(Listar))]
+		[Authorize(Roles = Constantes.ROL_ADMIN_O_VENDEDOR)]
 		public async Task<IActionResult> Listar([FromQuery(Name = "cantidad")] int cantidad,
 			[FromQuery(Name = "salto")] int salto)
 		{
 			try
 			{
-				
-				return Ok("Hapy");
+				var respuesta = _ordenDeCompraRepositorio.Listar(cantidad, salto);
+				return Ok(respuesta);
 			}
 			catch (Exception ex)
 			{
-				Console.WriteLine(ex.ToString());
-				var resultado = new RespuestaApiList<OrdenDeCompra>
-				{
-					Error = "",
-					Mensaje = ex.Message,
-					Resultado = new List<OrdenDeCompra> { }
-				};
-				return StatusCode(500, resultado);
+				return StatusCode(500, ex.ToString());
 			}
 		}
 
 		[HttpGet("{id}")]
 		[ActionName(nameof(ObtenerPorId))]
+		[Authorize(Roles = Constantes.ROL_ADMIN_O_VENDEDOR)]
 		public ActionResult<OrdenDeCompra> ObtenerPorId(int id)
 		{
 			var entidad = _ordenDeCompraRepositorio.ObtenerPorId(id);
@@ -63,30 +62,52 @@ namespace PapeleriaApi.Controllers
 
 		[HttpGet("folio/{folio}")]
 		[ActionName(nameof(ObtenerPorId))]
-		public IEnumerable<OrdenDeCompra> ObtenerPorId(string folio)
+		[Authorize(Roles = Constantes.ROL_ADMIN_O_VENDEDOR)]
+		public ActionResult<OrdenDeCompraDto> ObtenerPorFolio(string folio)
 		{
-			var entidad = _ordenDeCompraRepositorio.ListarPorFolio(folio);
-			return entidad;
+			try
+			{
+				var entidad = _ordenDeCompraRepositorio.ListarPorFolio(folio);
+				return Ok(entidad);
+			}
+			catch(Exception ex)
+			{
+				Console.WriteLine(ex.ToString());
+				return StatusCode(500, ex.ToString());
+			}
+
 		}
 
 		[HttpPost]
 		[ActionName(nameof(CrearAsync))]
+		[Authorize(Roles = Constantes.ROL_ADMIN)]
 		public async Task<ActionResult<OrdenDeCompra>> CrearAsync(OrdenDeCompra entidad)
 		{
 			await _ordenDeCompraRepositorio.GuardarAsync(entidad);
 			return CreatedAtAction(nameof(ObtenerPorId), new { id = entidad.Id }, entidad);
 		}
 
-		[HttpPost("row")]
+		[HttpPost("multiple")]
 		[ActionName(nameof(CrearAsync))]
-		public async Task<bool> CrearMultipleAsync(OrdenDeCompra[] entidad)
+		[Authorize(Roles = Constantes.ROL_ADMIN_O_VENDEDOR)]
+		public async Task<IActionResult> CrearMultipleAsync(OrdenDeCompra[] entidad)
 		{
-			await _ordenDeCompraRepositorio.GuaradarMultiples(entidad);
-			return true;
+			try
+			{
+				var resultado = await _ordenDeCompraRepositorio.GuardarMultiples(entidad);
+
+				return StatusCode(201, resultado);
+			}
+			catch (Exception ex)
+			{
+				return StatusCode(500, ex.Message);
+			}
+
 		}
 
 		[HttpPut("{id}")]
 		[ActionName(nameof(Actualizar))]
+		[Authorize(Roles = Constantes.ROL_ADMIN)]
 		public async Task<ActionResult> Actualizar(int id, OrdenDeCompra entidad)
 		{
 			if (id != entidad.Id)
@@ -99,6 +120,7 @@ namespace PapeleriaApi.Controllers
 
 		[HttpDelete("{id}")]
 		[ActionName(nameof(Eliminar))]
+		[Authorize(Roles = Constantes.ROL_ADMIN)]
 		public async Task<IActionResult> Eliminar(int id)
 		{
 			var entidad = _ordenDeCompraRepositorio.ObtenerPorId(id);

@@ -1,6 +1,10 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using PapeleriaApi.Modelos;
+using PapeleriaApi.Modelos.Dtos;
 using PapeleriaApi.Modelos.Repositorios;
+using PapeleriaApi.Utilidades;
+using System.Data;
 
 namespace PapeleriaApi.Controllers
 {
@@ -10,52 +14,95 @@ namespace PapeleriaApi.Controllers
     {
         private IProductoRepositorio _productoRepository;
         public ProductoController(IProductoRepositorio productoRepository) { 
-            _productoRepository = productoRepository; 
+            _productoRepository = productoRepository;
         }
 
         [HttpGet]
         [ActionName(nameof(ListarProductosAsync))]
-        public IEnumerable<Producto> ListarProductosAsync([FromQuery(Name = "cantidad")] int cantidad,
+		[Authorize(Roles = Constantes.ROL_ADMIN_O_VENDEDOR)]
+		public ActionResult ListarProductosAsync([FromQuery(Name = "cantidad")] int cantidad,
 			[FromQuery(Name = "salto")] int salto)
         {
-            return _productoRepository.ListarProductos(cantidad, salto);
+            try
+            {
+                var datos = _productoRepository.ListarProductos(cantidad, salto);
+                var respuesta = new RespuestaApiPlural<Producto>
+                {
+                    Cantidad = cantidad,
+                    Datos = datos,
+                    Error = null,
+                    Salto = salto
+                };
+                return Ok(respuesta);
+			}catch(Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
         }
 
         [HttpGet("{id}")]
         [ActionName(nameof(ObtenerProductoPorId))]
-        public ActionResult<Producto> ObtenerProductoPorId(int id)
+		[Authorize(Roles = Constantes.ROL_ADMIN_O_VENDEDOR)]
+		public ActionResult<Producto> ObtenerProductoPorId(int id)
         {
-            var producto = _productoRepository.ObtenerProductoPorId(id);
-            if(producto == null)
+            try
             {
-                return NotFound();
+				var producto = _productoRepository.ObtenerProductoPorId(id);
+				if (producto == null)
+				{
+					return NotFound();
+				}
+                var respuesta = new RespuestaApiSingular<Producto>
+                {
+                    Datos = producto,
+                    Error = null,
+                };
+				return Ok(producto);
+			}catch(Exception ex)
+            {
+                return StatusCode(500, ex.Message);
             }
-            return producto;
         }
 
         [HttpPost]
         [ActionName(nameof(CrearProductoAsync))]
-        public async Task<ActionResult<Producto>> CrearProductoAsync(Producto producto)
+		[Authorize(Roles = Constantes.ROL_ADMIN)]
+		public async Task<ActionResult<Producto>> CrearProductoAsync(Producto producto)
         {
-            await _productoRepository.GuardarProductoAsync(producto);
-            return CreatedAtAction(nameof(ObtenerProductoPorId), new { id = producto.Id}, producto);
+            try
+            {
+				await _productoRepository.GuardarProductoAsync(producto);
+				return CreatedAtAction(nameof(ObtenerProductoPorId), new { id = producto.Id }, producto);
+			}
+			catch(Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
         }
 
         [HttpPut("{id}")]
         [ActionName(nameof(ActualizarProducto))]
-        public async Task<ActionResult> ActualizarProducto(int id, Producto producto)
+		[Authorize(Roles = Constantes.ROL_ADMIN)]
+		public async Task<ActionResult> ActualizarProducto(int id, Producto producto)
         {
-            if(id != producto.Id)
+            try
             {
-                return BadRequest();
+				if (id != producto.Id)
+				{
+					return BadRequest();
+				}
+				await _productoRepository.ActualizarProductoAsync(producto);
+				return NoContent();
+			}catch(Exception ex)
+            {
+                return StatusCode(500, ex.Message);
             }
-            await _productoRepository.ActualizarProductoAsync(producto);
-            return NoContent();
         }
 
         [HttpDelete("{id}")]
         [ActionName(nameof(EliminarProducto))]
-        public async Task<IActionResult> EliminarProducto(int id)
+		[Authorize(Roles = Constantes.ROL_ADMIN)]
+		public async Task<IActionResult> EliminarProducto(int id)
         {
             var producto = _productoRepository.ObtenerProductoPorId(id);
             if (producto == null) { return NotFound(); }
