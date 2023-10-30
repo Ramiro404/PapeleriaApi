@@ -26,6 +26,7 @@ namespace PapeleriaApi.Controllers
 		{
 			try
 			{
+				
 				var usuario = loginRepositorio.Autenticar(loginUsuario);
 				if (usuario == null)
 				{
@@ -34,7 +35,7 @@ namespace PapeleriaApi.Controllers
 				var mapper = MapperConfig.InicializarAutoMapper();
 				UsuarioDto usuarioDto = mapper.Map<UsuarioDto>(usuario);
 				var token = servicioJwt.Generar(usuarioDto);
-				return Ok(token);
+				return Ok(new { Token= token});
 			}
 			catch(Exception ex)
 			{

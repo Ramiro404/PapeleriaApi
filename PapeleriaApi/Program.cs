@@ -17,6 +17,16 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddCors(options =>
+{
+	options.AddPolicy("AngularPolicy", app =>
+	{
+		app.AllowAnyOrigin()
+		.AllowAnyHeader()
+		.AllowAnyMethod();
+	});
+});
+
 builder.Services.AddDbContext<DBContexto>(
     options =>
     {
@@ -68,7 +78,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-
+app.UseCors("AngularPolicy");
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();

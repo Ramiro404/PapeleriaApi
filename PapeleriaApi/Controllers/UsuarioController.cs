@@ -10,7 +10,6 @@ namespace PapeleriaApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-	[Authorize(Roles = Constantes.ROL_ADMIN)]
 	public class UsuarioController : ControllerBase
     {
         private IUsuarioRepositorio _usuarioRepositorio;
